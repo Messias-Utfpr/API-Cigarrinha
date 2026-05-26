@@ -1,110 +1,395 @@
 # API de Detecção de Cigarrinha
 
-Bem-vindo à documentação da **API de Detecção de Cigarrinha**. Este projeto é um microsserviço hospedado localmente que utiliza inteligência artificial (modelos YOLO via Ultralytics) para analisar imagens, identificar espécies e retornar dados estruturados prontos para integração.
-
-## Tecnologias Utilizadas
-* **Python 3.x**
-* **FastAPI:** Framework web de alta performance.
-* **Ultralytics (YOLO):** Motor de inferência de visão computacional.
-* **Google OAuth2:** Camada de autenticação e segurança.
-* **Uvicorn:** Servidor ASGI para rodar a aplicação.
-
-## Documentação dos Endpoints
-
-### 1. Informações do Modelo
-Retorna os metadados do modelo atualmente carregado na API e valida o usuário autenticado.
-
-* **URL:** `/model_cigarrinha_info`
-* **Método:** `GET`
-* **Autenticação Exigida:** Sim (`Bearer Token`)
-
-**Resposta de Sucesso (200 OK):**
-
-Retorna um objeto JSON contendo o nome do modelo, o dicionário de classes disponíveis e o e-mail do usuário validado.
-
-```json
-{
-    "model_name": "Detector de Cigarrinha",
-    "classes": {
-        "0": "cigarrinha"
-    },
-    "total_classes": 1,
-    "user_email": "usuario@dominio.com"
-}
-```
-
-### 2. Detecção em Imagem
-Recebe uma imagem, executa a inferência usando o modelo YOLO e retorna a contagem, as coordenadas das caixas delimitadoras e a própria imagem processada.
-
-* **URL:** `/detect_cigarrinha`
-* **Método:** `POST`
-* **Autenticação Exigida:** Sim (`Bearer Token`)
-
-**Parâmetros da Requisição (Body):**
-O corpo da requisição deve ser enviado no formato `multipart/form-data`.
-
-| Parâmetro | Tipo | Descrição |
-| :--- | :--- | :--- |
-| `file` | Arquivo | A imagem a ser processada (JPEG, PNG, etc). |
-
-**Resposta de Sucesso (200 OK):**
-
-Retorna um objeto JSON com o resumo das detecções, as coordenadas no padrão YOLO (TXT), a imagem resultante em Base64 e o usuário que solicitou o processamento.
-
-```json
-{
-    "deteccoes": {
-        "cigarrinha": 3
-    },
-    "coordenadas": [
-        "0 0.83750000 0.39062500 0.03593750 0.04062500",
-        "0 0.62031250 0.36406250 0.03828125 0.04453125",
-        "0 0.66406250 0.53046875 0.02343750 0.06328125"
-    ],
-    "imagem_base64": "/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAA...",
-    "user_email": "usuario@dominio.com"
-}
-```
-
-## Como Testar a API Localmente
-
-Esta API utiliza **Google OAuth2** para segurança. Para testar os endpoints de detecção (`/detect_cigarrinha`) e informações do modelo (`/model_cigarrinha_info`), você precisará fornecer um Token de autenticação válido em cada requisição.
-
-### 1. Obtendo um Token de Teste Temporário
-Para facilitar o desenvolvimento, você pode gerar um token de teste oficial do Google que dura 1 hora:
-
-1. Acesse o [Google OAuth 2.0 Playground](https://developers.google.com/oauthplayground).
-2. Na coluna da esquerda (**Step 1**), procure e clique em **Google OAuth2 API v2**.
-3. Marque a opção `https://www.googleapis.com/auth/userinfo.email`.
-4. Clique no botão azul **Authorize APIs** e faça login com sua conta Google.
-5. Em **Step 2**, clique no botão azul **Exchange authorization code for tokens**.
-6. Copie todo o texto contido no campo **ID Token** (é uma string longa). Este é o seu token de acesso.
+API desenvolvida com FastAPI + YOLO para detecção de cigarrinhas em imagens utilizando autenticação JWT, banco de dados SQLAlchemy e controle de usuários.
 
 ---
 
-### 2. Testando via Interface Gráfica (Swagger)
-O FastAPI gera uma interface amigável para testar o envio de imagens diretamente pelo navegador:
+# Funcionalidades
 
-1. Com a API rodando no terminal (`python main.py`), abra o navegador e acesse: [http://localhost:8000/docs](http://localhost:8000/docs)
-2. No canto superior direito da página, clique no botão **Authorize** (ícone de cadeado).
-3. No campo que aparecer, cole o seu **ID Token** e clique em **Authorize**. Depois, feche a janelinha.
-4. Clique no endpoint azul `POST /detect_cigarrinha` para expandi-lo.
-5. Clique em **Try it out**.
-6. No campo `file`, selecione uma imagem de teste do seu computador.
-7. Clique em **Execute**.
-8. A resposta detalhada aparecerá abaixo, contendo a contagem das classes, as coordenadas (padrão YOLO) e a imagem processada em Base64.
+- Cadastro de usuários
+- Login com JWT Bearer Token
+- Detecção de cigarrinhas utilizando YOLO
+- Retorno da imagem anotada em Base64
+- Coordenadas no formato YOLO TXT
+- Registro de logs das requisições no banco de dados
+- Documentação automática Swagger
 
 ---
 
-### 3. Testando via Terminal (cURL)
-Se você preferir automatizar ou testar via linha de comando, utilize o `cURL`. 
+# Tecnologias Utilizadas
 
-Substitua `SEU_ID_TOKEN_AQUI` pelo token copiado no Passo 1 e `/caminho/para/imagem.jpg` pelo local real da foto no seu computador:
+- FastAPI
+- YOLO (Ultralytics)
+- SQLAlchemy
+- JWT Authentication
+- Passlib / Bcrypt
+- Pillow
+- Uvicorn
+
+---
+
+# Estrutura da API
+
+## Base URL
+
+```txt
+http://SEU_SERVIDOR:8000
+```
+
+Exemplo:
+
+```txt
+http://127.0.0.1:8000
+```
+
+---
+
+# Autenticação
+
+A autenticação é realizada utilizando JWT Bearer Token.
+
+Fluxo:
+
+1. Registrar usuário
+2. Realizar login
+3. Utilizar o token retornado nas próximas requisições
+
+---
+
+# Cadastro de Usuário
+
+Cria um novo usuário na plataforma.
+
+## Endpoint
+
+```http
+POST /register
+```
+
+---
+
+## Body JSON
+
+```json
+{
+  "email": "usuario@gmail.com",
+  "password": "123456"
+}
+```
+
+---
+
+## Exemplo CURL
 
 ```bash
-curl -X 'POST' \
-  'http://localhost:8000/detect_cigarrinha' \
-  -H 'accept: application/json' \
-  -H 'Authorization: Bearer SEU_ID_TOKEN_AQUI' \
-  -H 'Content-Type: multipart/form-data' \
-  -F 'file=@/caminho/para/imagem.jpg;type=image/jpeg'
+curl -X POST "http://127.0.0.1:8000/register" \
+-H "Content-Type: application/json" \
+-d "{\"email\":\"usuario@gmail.com\",\"password\":\"123456\"}"
+```
+
+---
+
+## Resposta
+
+```json
+{
+  "message": "Usuário criado com sucesso!"
+}
+```
+
+---
+
+# Login
+
+Realiza autenticação e retorna o JWT Token.
+
+## Endpoint
+
+```http
+POST /token
+```
+
+---
+
+## Content-Type
+
+```http
+application/x-www-form-urlencoded
+```
+
+---
+
+## Parâmetros
+
+| Campo | Valor |
+|---|---|
+| username | email do usuário |
+| password | senha do usuário |
+
+---
+
+## Exemplo CURL
+
+```bash
+curl -X POST "http://127.0.0.1:8000/token" \
+-H "Content-Type: application/x-www-form-urlencoded" \
+-d "username=usuario@gmail.com&password=123456"
+```
+
+---
+
+## Exemplo de Resposta
+
+```json
+{
+  "access_token": "SEU_TOKEN_JWT",
+  "token_type": "bearer"
+}
+```
+
+---
+
+# Utilizando o Token
+
+Após realizar o login, envie o token no header Authorization:
+
+```http
+Authorization: Bearer SEU_TOKEN_JWT
+```
+
+---
+
+# Endpoint: Detectar Cigarrinhas
+
+Realiza a detecção de cigarrinhas em uma imagem.
+
+## Endpoint
+
+```http
+POST /detect_cigarrinha
+```
+
+---
+
+## Headers
+
+```http
+Authorization: Bearer SEU_TOKEN_JWT
+Content-Type: multipart/form-data
+```
+
+---
+
+## Parâmetros
+
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| file | imagem | Sim | Imagem para análise |
+
+---
+
+## Exemplo CURL
+
+```bash
+curl -X POST "http://127.0.0.1:8000/detect_cigarrinha" \
+-H "Authorization: Bearer SEU_TOKEN_JWT" \
+-F "file=@imagem.jpg"
+```
+
+---
+
+## Exemplo de Resposta
+
+```json
+{
+  "deteccoes": {
+    "cigarrinha": 3
+  },
+  "coordenadas": [
+    "0 0.51234567 0.42123456 0.10234567 0.08234567",
+    "0 0.71234567 0.32123456 0.09234567 0.07234567"
+  ],
+  "imagem_base64": "/9j/4AAQSkZJRgABAQAAAQABAAD...",
+  "user_email": "usuario@gmail.com"
+}
+```
+
+---
+
+# Campos da Resposta
+
+| Campo | Descrição |
+|---|---|
+| deteccoes | Quantidade detectada por classe |
+| coordenadas | Coordenadas no formato YOLO TXT |
+| imagem_base64 | Imagem anotada em Base64 |
+| user_email | Usuário autenticado |
+
+---
+
+# Endpoint: Informações do Modelo
+
+Retorna informações do modelo carregado.
+
+## Endpoint
+
+```http
+GET /model_cigarrinha_info
+```
+
+---
+
+## Headers
+
+```http
+Authorization: Bearer SEU_TOKEN_JWT
+```
+
+---
+
+## Exemplo CURL
+
+```bash
+curl -X GET "http://127.0.0.1:8000/model_cigarrinha_info" \
+-H "Authorization: Bearer SEU_TOKEN_JWT"
+```
+
+---
+
+## Exemplo de Resposta
+
+```json
+{
+  "model_name": "Detector de Cigarrinha",
+  "classes": {
+    "0": "cigarrinha"
+  },
+  "total_classes": 1,
+  "user_email": "usuario@gmail.com"
+}
+```
+
+---
+
+# Sistema de Logs
+
+Todas as chamadas autenticadas dos endpoints principais são registradas automaticamente no banco de dados.
+
+Os logs armazenam:
+
+- Usuário responsável
+- Endpoint acessado
+- Resumo da resposta
+- Timestamp da requisição
+
+---
+
+# Banco de Dados
+
+As tabelas são criadas automaticamente ao iniciar a aplicação:
+
+```python
+Base.metadata.create_all(bind=engine)
+```
+
+---
+
+# Executando Localmente
+
+## Instalar Dependências
+
+```bash
+pip install fastapi uvicorn ultralytics pillow sqlalchemy passlib bcrypt pyjwt python-multipart
+```
+
+---
+
+## Executar Aplicação
+
+```bash
+python main.py
+```
+
+ou
+
+```bash
+uvicorn app:app --host 0.0.0.0 --port 8000
+```
+
+---
+
+# Documentação Automática
+
+O FastAPI gera automaticamente a documentação Swagger.
+
+## Swagger UI
+
+```txt
+http://127.0.0.1:8000/docs
+```
+
+---
+
+# Segurança
+
+- Senhas criptografadas com Bcrypt
+- Autenticação JWT
+- Tokens com expiração automática
+- Rotas protegidas com Bearer Token
+
+---
+
+# Estrutura do Projeto
+
+```txt
+.
+├── app.py
+├── database.py
+├── cigarrinha.pt
+├── cigarrinha.onnx
+├── requirements.txt
+└── database.db
+```
+
+---
+
+# Exemplo Completo de Fluxo
+
+## 1. Registrar usuário
+
+```bash
+curl -X POST "http://127.0.0.1:8000/register" \
+-H "Content-Type: application/json" \
+-d "{\"email\":\"usuario@gmail.com\",\"password\":\"123456\"}"
+```
+
+---
+
+## 2. Fazer login
+
+```bash
+curl -X POST "http://127.0.0.1:8000/token" \
+-H "Content-Type: application/x-www-form-urlencoded" \
+-d "username=usuario@gmail.com&password=123456"
+```
+
+---
+
+## 3. Copiar o token retornado
+
+```json
+{
+  "access_token": "TOKEN_AQUI",
+  "token_type": "bearer"
+}
+```
+
+---
+
+## 4. Enviar imagem para detecção
+
+```bash
+curl -X POST "http://127.0.0.1:8000/detect_cigarrinha" \
+-H "Authorization: Bearer TOKEN_AQUI" \
+-F "file=@imagem.jpg"
+```

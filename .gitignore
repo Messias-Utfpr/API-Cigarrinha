@@ -1,0 +1,10 @@
+# =========================
+# Python / Ambiente Virtual
+# =========================
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+.env
